@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -99,8 +99,8 @@ var Files map[string]File = map[string]File{`
 				continue
 			}
 			stripedFileName := stripRootDir(rootDir, target)
-
-			str := fmt.Sprintf(pattern, stripedFileName, stripedFileName, http.DetectContentType(bts), base64.StdEncoding.EncodeToString(bts))
+			mi := mime.TypeByExtension(filepath.Ext(target))
+			str := fmt.Sprintf(pattern, stripedFileName, stripedFileName, mi, base64.StdEncoding.EncodeToString(bts))
 
 			appendFile(tempPath, str)
 
@@ -113,7 +113,8 @@ var Files map[string]File = map[string]File{`
 					return nil
 				}
 				stripedFileName := stripRootDir(rootDir, path)
-				str := fmt.Sprintf(pattern, stripedFileName, stripedFileName, http.DetectContentType(bts), base64.StdEncoding.EncodeToString(bts))
+				mi := mime.TypeByExtension(filepath.Ext(path))
+				str := fmt.Sprintf(pattern, stripedFileName, stripedFileName, mi, base64.StdEncoding.EncodeToString(bts))
 
 				e = appendFile(tempPath, str)
 				if e != nil {
