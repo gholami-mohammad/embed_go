@@ -127,7 +127,11 @@ var Files map[string]File = map[string]File{`
 
 	appendFile(tempPath, "\n}")
 
-	os.Rename(tempPath, rootDir+"/embed_go/embed_go.go")
+	e = os.Rename(tempPath, rootDir+"/embed_go/embed_go.go")
+	if e != nil {
+		return
+	}
+	createServerFile(rootDir)
 
 }
 
@@ -147,4 +151,44 @@ func appendFile(filename string, text string) error {
 }
 func stripRootDir(rootDir string, path string) string {
 	return path[len(rootDir)+1:]
+}
+
+func createServerFile(rootDir string) {
+	tempPath := ".server.tmp"
+	tempFile, e := os.Create(tempPath)
+	if e != nil {
+		panic("Can not create temp file" + e.Error())
+	}
+	tempFile.WriteString(`
+package embed_go
+
+import (
+	"encoding/base64"
+	"net/http"
+	"strings"
+)
+
+func ServeFiles(prefix string) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		filename := r.URL.Path
+
+		if strings.EqualFold(r.URL.Path, "/") {
+			filename = "/index.html"
+		}
+		file, ok := Files[prefix+filename]
+		if ok == false {
+			http.NotFound(w, r)
+		}
+		content, e := base64.StdEncoding.DecodeString(file.Content)
+		if e != nil {
+			http.NotFound(w, r)
+		}
+		w.Header().Add("Content-Type", file.ContentType)
+		w.Write(content)
+
+	}
+}
+`)
+	tempFile.Close()
+	os.Rename(tempPath, rootDir+"/embed_go/server.go")
 }
